@@ -1,0 +1,53 @@
+import { IModuleExecutor, ExecutionInputs, ExecutionResult } from '../engine/types';
+import { KampaniiApi, Configuration } from '@galaxy-developers/wb-sdk';
+import { BigQueryService } from '../services/BigQueryService'; // Добавлено
+export class WbGetCampaignsExecutor implements IModuleExecutor {
+    async execute(config: any, inputs: ExecutionInputs, apiKey: string, bigQueryService: BigQueryService): Promise<ExecutionResult> {
+        console.log('[Module:wb-get-campaigns] Running with config:', config);
+        const { statusFilter, typeFilter } = config;
+        if (!apiKey || apiKey.includes('СЮДА')) {
+            return { outputs: new Map(), error: 'API Key not provided in module config!' };
+        }
+        const wbConfig = new Configuration({ apiKey });
+        const campaignApi = new KampaniiApi(wbConfig);
+        try {
+            const response = await campaignApi.advV1AdvertsPost(
+                statusFilter, 
+                typeFilter,   
+                'create', // default value, adjust if needed
+                'desc'    // default value, adjust if needed
+            );
+            const campaigns = response.data;
+            // КРИТИЧЕСКИ ВАЖНО: СОХРАНЕНИЕ СЫРЫХ ДАННЫХ В BIGQUERY
+            // Предполагаем, что response.data - это массив объектов,
+            // а схема может быть получена или должна быть определена.
+            // Для примера используем имя таблицы 'wb_get_campaigns_raw'
+            // Схема должна быть получена из SDK или динамически сгенерирована.
+            if (campaigns && Array.isArray(campaigns) && campaigns.length > 0) {
+                // Здесь будет логика определения схемы
+                const campaignSchema = [
+                    { name: 'id', type: 'INTEGER' },
+                    { name: 'name', type: 'STRING' },
+                    { name: 'type', type: 'INTEGER' },
+                    { name: 'status', type: 'INTEGER' },
+                    { name: 'budget', type: 'FLOAT' },
+                    { name: 'dailyBudget', type: 'FLOAT' },
+                    { name: 'startTime', type: 'TIMESTAMP' },
+                    { name: 'endTime', type: 'TIMESTAMP' },
+                    { name: 'createTime', type: 'TIMESTAMP' },
+                    { name: 'changeTime', type: 'TIMESTAMP' }
+                    // ... добавьте все поля из реального ответа WB
+                ];
+                await bigQueryService.saveRawData(`wb_get_campaigns_raw_${Date.now()}`, campaigns, campaignSchema, 'wb_raw_data');
+                console.log(`[Module:wb-get-campaigns] Raw campaign data saved to BigQuery.`);
+            }
+            const outputs = new Map();
+            outputs.set('campaigns_out', campaigns);
+            return { outputs };
+        } catch (error: any) {
+            console.error(`[Module:wb-get-campaigns] API Error:`, error.response?.data || error.message);
+            const errorMessage = error.response?.data?.errors?. || (error instanceof Error ? error.message : 'Unknown API error');
+            return { outputs: new Map(), error: `Error fetching campaigns: ${JSON.stringify(errorMessage)}` };
+        }
+    }
+}

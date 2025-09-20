@@ -1,0 +1,53 @@
+```json
+{
+  "id": "wf-1",
+  "name": "Базовый анализ рекламной кампании",
+  "nodes": [
+    {
+      "id": "node-1",
+      "module": "wb-get-campaigns",
+      "config": {
+        "apiKey": "ВАШ_РЕКЛАМНЫЙ_API_КЛЮЧ_СЮДА",
+        "statusFilter": 9,
+        "typeFilter": 8
+      }
+    },
+    {
+      "id": "node-2",
+      "module": "wb-get-stats",
+      "config": {
+        "apiKey": "ВАШ_РЕКЛАМНЫЙ_API_КЛЮЧ_СЮДА",
+        "period": 30
+      }
+    },
+    {
+      "id": "node-3",
+      "module": "data-aggregator",
+      "config": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "node-1",
+      "sourceHandle": "campaigns_out",
+      "target": "node-2",
+      "targetHandle": "campaigns_in"
+    },
+    {
+      "id": "edge-2",
+      "source": "node-1",
+      "sourceHandle": "campaigns_out",
+      "target": "node-3",
+      "targetHandle": "campaigns_in"
+    },
+    {
+      "id": "edge-3",
+      "source": "node-2",
+      "sourceHandle": "stats_out",
+      "target": "node-3",
+      "targetHandle": "stats_in"
+    }
+  ]
+}
+```

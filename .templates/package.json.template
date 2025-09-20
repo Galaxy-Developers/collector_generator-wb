@@ -1,0 +1,47 @@
+{
+  "name": "{{ module_metadata.service_name }}",
+  "version": "{{ module_metadata.version }}",
+  "description": "{{ module_metadata.short_description }}",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix"
+  },
+  "dependencies": {
+    "@google-cloud/bigquery": "^7.3.0",
+    "@google-cloud/secret-manager": "^5.0.1",
+    "axios": "^1.6.0",
+    "express": "^4.18.2",
+    "joi": "^17.11.0",
+    "helmet": "^7.1.0",
+    "cors": "^2.8.5",
+    "compression": "^1.7.4",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "eslint": "^8.55.0",
+    "supertest": "^6.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "{{ module_metadata.service_name }}",
+    "api",
+    "bigquery",
+    "microservice",
+    "galaxy-generator"
+  ],
+  "author": "GALAXY Generator v2.0-FINAL",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/{{ module_metadata.service_name }}.git"
+  }
+}

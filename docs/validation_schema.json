@@ -1,0 +1,388 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://galaxy.com/schemas/module.yaml.schema.json",
+  "title": "GALAXY Module Configuration Schema",
+  "description": "JSON Schema для валидации конфигурационных файлов module.yaml",
+  "type": "object",
+  "required": [
+    "module_metadata",
+    "source_api",
+    "target_database",
+    "exposed_api",
+    "deployment_config"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "module_metadata": {
+      "type": "object",
+      "required": [
+        "name",
+        "service_name",
+        "short_description",
+        "version"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Полное, человекочитаемое имя модуля",
+          "minLength": 1
+        },
+        "service_name": {
+          "type": "string",
+          "description": "Техническое имя в kebab-case",
+          "pattern": "^[a-z0-9-]+$",
+          "minLength": 1
+        },
+        "short_description": {
+          "type": "string",
+          "description": "Краткое описание назначения модуля",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "description": "Семантическая версия модуля",
+          "pattern": "^(\\d+\\.\\d+\\.\\d+)$"
+        }
+      }
+    },
+    "source_api": {
+      "type": "object",
+      "required": [
+        "name",
+        "base_url",
+        "endpoint_path",
+        "http_method",
+        "auth",
+        "response_data_path"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Имя API для логов и комментариев",
+          "minLength": 1
+        },
+        "base_url": {
+          "type": "string",
+          "description": "Базовый URL API",
+          "format": "uri"
+        },
+        "endpoint_path": {
+          "type": "string",
+          "description": "Путь к эндпоинту",
+          "pattern": "^/.*"
+        },
+        "http_method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST"
+          ],
+          "description": "HTTP метод запроса"
+        },
+        "auth": {
+          "type": "object",
+          "required": [
+            "method",
+            "secret_name_gcp"
+          ],
+          "properties": {
+            "method": {
+              "type": "string",
+              "enum": [
+                "BearerToken"
+              ],
+              "description": "Метод аутентификации"
+            },
+            "secret_name_gcp": {
+              "type": "string",
+              "description": "Имя секрета в GCP Secret Manager",
+              "minLength": 1
+            }
+          }
+        },
+        "request_parameters": {
+          "type": "array",
+          "description": "Параметры запроса",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "type"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "string",
+                  "integer",
+                  "boolean",
+                  "array"
+                ]
+              },
+              "default": {
+                "description": "Значение по умолчанию"
+              }
+            }
+          }
+        },
+        "response_data_path": {
+          "type": "string",
+          "description": "JSONPath к массиву данных в ответе",
+          "minLength": 1
+        },
+        "pagination_date_field": {
+          "type": "string",
+          "description": "Поле с датой для пагинации"
+        }
+      }
+    },
+    "target_database": {
+      "type": "object",
+      "required": [
+        "type",
+        "dataset_id",
+        "table_id",
+        "schema_mapping"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "BigQuery"
+          ],
+          "description": "Тип базы данных"
+        },
+        "dataset_id": {
+          "type": "string",
+          "description": "Имя датасета",
+          "minLength": 1
+        },
+        "table_id": {
+          "type": "string",
+          "description": "Имя таблицы",
+          "minLength": 1
+        },
+        "partitioning_field": {
+          "type": "string",
+          "description": "Поле для партиционирования по времени"
+        },
+        "partitioning_type": {
+          "type": "string",
+          "enum": [
+            "DAY",
+            "MONTH",
+            "YEAR"
+          ],
+          "description": "Тип партиционирования"
+        },
+        "clustering_fields": {
+          "type": "array",
+          "description": "Поля для кластеризации",
+          "items": {
+            "type": "string"
+          }
+        },
+        "schema_mapping": {
+          "type": "array",
+          "description": "Маппинг схемы данных",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "target_column",
+              "source_path",
+              "type",
+              "mode",
+              "description"
+            ],
+            "properties": {
+              "target_column": {
+                "type": "string",
+                "description": "Имя колонки в BigQuery",
+                "minLength": 1
+              },
+              "source_path": {
+                "type": "string",
+                "description": "JSONPath к исходному полю",
+                "minLength": 1
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "STRING",
+                  "INTEGER",
+                  "FLOAT",
+                  "TIMESTAMP",
+                  "JSON",
+                  "BOOLEAN"
+                ],
+                "description": "Тип поля BigQuery"
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "REQUIRED",
+                  "NULLABLE",
+                  "REPEATED"
+                ],
+                "description": "Режим поля"
+              },
+              "description": {
+                "type": "string",
+                "description": "Описание поля",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "exposed_api": {
+      "type": "object",
+      "required": [
+        "endpoint_path",
+        "http_method",
+        "description",
+        "request_body_schema",
+        "response_body_schema"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "endpoint_path": {
+          "type": "string",
+          "description": "Путь к публичному эндпоинту",
+          "pattern": "^/.*"
+        },
+        "http_method": {
+          "type": "string",
+          "enum": [
+            "POST"
+          ],
+          "description": "HTTP метод"
+        },
+        "description": {
+          "type": "string",
+          "description": "Описание эндпоинта",
+          "minLength": 1
+        },
+        "request_body_schema": {
+          "type": "array",
+          "description": "Схема тела запроса",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "type",
+              "required"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "array",
+                  "string",
+                  "integer",
+                  "number",
+                  "boolean"
+                ]
+              },
+              "items_type": {
+                "type": "string",
+                "enum": [
+                  "string",
+                  "integer",
+                  "number",
+                  "boolean"
+                ],
+                "description": "Тип элементов массива (если type = array)"
+              },
+              "required": {
+                "type": "boolean",
+                "description": "Обязательное поле"
+              }
+            }
+          }
+        },
+        "response_body_schema": {
+          "type": "array",
+          "description": "Схема тела ответа",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "type"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "array",
+                  "string",
+                  "integer",
+                  "number",
+                  "boolean",
+                  "object"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "deployment_config": {
+      "type": "object",
+      "required": [
+        "gcp_region",
+        "docker_image_name",
+        "cloud_run_resources"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "gcp_region": {
+          "type": "string",
+          "description": "Регион для развертывания в GCP",
+          "minLength": 1
+        },
+        "docker_image_name": {
+          "type": "string",
+          "description": "Имя Docker-образа без тега",
+          "minLength": 1
+        },
+        "cloud_run_resources": {
+          "type": "object",
+          "required": [
+            "cpu",
+            "memory"
+          ],
+          "properties": {
+            "cpu": {
+              "type": "string",
+              "description": "CPU лимиты",
+              "pattern": "^\\d+m$"
+            },
+            "memory": {
+              "type": "string",
+              "description": "Лимиты памяти",
+              "pattern": "^\\d+Mi$"
+            }
+          }
+        }
+      }
+    }
+  }
+}

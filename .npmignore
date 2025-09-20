@@ -1,0 +1,14 @@
+tests/
+test/
+*.test.js
+*.spec.js
+docs/
+*.md
+!README.md
+.github/
+.vscode/
+.idea/
+coverage/
+logs/
+*.log
+.env*

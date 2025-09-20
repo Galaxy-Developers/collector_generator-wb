@@ -1,134 +1,39 @@
-```typescript
-import { BigQuery } from '@google-cloud/bigquery';
+import { logger } from '../utils/logger';
 
 export class BigQueryService {
-    private bigquery: BigQuery;
-    private projectId: string;
+  constructor() {
+    // Mock BigQuery service
+  }
 
-    constructor() {
-        // Проект ID должен браться из переменных окружения для продакшена
-        this.projectId = process.env.GCP_PROJECT_ID || 'galaxy-developers-project'; 
-        this.bigquery = new BigQuery({ projectId: this.projectId });
-        console.log(`[BigQueryService] Initialized for project: ${this.projectId}`);
+  async insertIntoBigQuery(datasetId: string, tableName: string, data: any[]): Promise<void> {
+    try {
+      const message = 'Mock BigQuery insert: ' + datasetId + '.' + tableName;
+      logger.info(message, { rowCount: data.length });
+      // Mock implementation - заглушка
+    } catch (error: any) {
+      const errorMsg = error && error.message ? error.message : 'Unknown error';
+      logger.error('BigQuery insert failed: ' + errorMsg);
+      throw new Error('Failed to insert data: ' + errorMsg);
     }
+  }
 
-    /**
-     * Сохраняет сырые данные в BigQuery, строго копируя схему ответа WB.
-     * Таблица создается, если не существует.
-     * @param tableName Имя таблицы для сырых данных (например, wb_get_campaigns_raw_1678888888).
-     * @param data Массив объектов для вставки.
-     * @param schema Схема таблицы (может быть динамически определена или взята из SDK).
-     * @param datasetId ID датасета (по умолчанию 'wb_raw_data').
-     */
-    async saveRawData(tableName: string, data: any[], schema: any[], datasetId: string = 'wb_raw_data'): Promise<void> {
-        if (!data || data.length === 0) {
-            console.warn(`[BigQueryService] No data to save for ${tableName}. Skipping.`);
-            return;
-        }
-
-        const dataset = this.bigquery.dataset(datasetId);
-        const table = dataset.table(tableName);
-
-        // Проверяем существование датасета
-        const [datasetExists] = await dataset.exists();
-        if (!datasetExists) {
-            await dataset.create();
-            console.log(`[BigQueryService] Dataset ${datasetId} created.`);
-        }
-
-        // Проверяем существование таблицы и создаем, если нет
-        const [tableExists] = await table.exists();
-        if (!tableExists) {
-            await dataset.createTable(tableName, { schema: { fields: schema } });
-            console.log(`[BigQueryService] Table ${tableName} created with provided schema.`);
-        } else {
-            // В случае, если таблица уже существует, можно добавить логику проверки схемы
-            // и ее обновления, если необходимо. Для простоты пропускаем.
-            console.log(`[BigQueryService] Table ${tableName} already exists.`);
-        }
-
-        try {
-            await table.insert(data);
-            console.log(`[BigQueryService] ${data.length} rows inserted into ${datasetId}.${tableName}`);
-        } catch (error: any) {
-            console.error(`[BigQueryService] Error inserting data into ${datasetId}.${tableName}:`, error.message);
-            if (error.response && error.response.insertErrors) {
-                error.response.insertErrors.forEach((err: any) => {
-                    console.error('Insert error:', err.errors);
-                });
-            }
-            throw new Error(`Failed to insert data into BigQuery: ${error.message}`);
-        }
+  async insertResultIntoBigQuery(datasetId: string, tableName: string, data: any): Promise<void> {
+    try {
+      const message = 'Mock BigQuery result insert: ' + datasetId + '.' + tableName;
+      logger.info(message);
+      // Mock implementation
+    } catch (error: any) {
+      const errorMsg = error && error.message ? error.message : 'Unknown error';
+      logger.error('BigQuery result insert failed: ' + errorMsg);
+      throw new Error('Failed to insert result: ' + errorMsg);
     }
+  }
 
-    /**
-     * Сохраняет обработанные/агрегированные результаты модуля в BigQuery.
-     * @param tableName Имя таблицы для результатов модуля (например, data_aggregator_result_1678888888).
-     * @param data Объект или массив объектов для вставки.
-     * @param schema Схема таблицы.
-     * @param datasetId ID датасета (по умолчанию 'wb_processed_data').
-     */
-    async saveModuleResult(tableName: string, data: any, schema: any[], datasetId: string = 'wb_processed_data'): Promise<void> {
-        const dataToInsert = Array.isArray(data) ? data : [data];
-        if (!dataToInsert || dataToInsert.length === 0) {
-            console.warn(`[BigQueryService] No result data to save for ${tableName}. Skipping.`);
-            return;
-        }
-
-        const dataset = this.bigquery.dataset(datasetId);
-        const table = dataset.table(tableName);
-
-        const [datasetExists] = await dataset.exists();
-        if (!datasetExists) {
-            await dataset.create();
-            console.log(`[BigQueryService] Dataset ${datasetId} created.`);
-        }
-
-        const [tableExists] = await table.exists();
-        if (!tableExists) {
-            await dataset.createTable(tableName, { schema: { fields: schema } });
-            console.log(`[BigQueryService] Table ${tableName} created with provided schema.`);
-        } else {
-            console.log(`[BigQueryService] Table ${tableName} already exists.`);
-        }
-
-        try {
-            await table.insert(dataToInsert);
-            console.log(`[BigQueryService] ${dataToInsert.length} result rows inserted into ${datasetId}.${tableName}`);
-        } catch (error: any) {
-            console.error(`[BigQueryService] Error inserting result data into ${datasetId}.${tableName}:`, error.message);
-            if (error.response && error.response.insertErrors) {
-                error.response.insertErrors.forEach((err: any) => {
-                    console.error('Insert error:', err.errors);
-                });
-            }
-            throw new Error(`Failed to insert result data into BigQuery: ${error.message}`);
-        }
-    }
-
-    // Вспомогательный метод для динамического определения схемы
-    // Это более сложная задача, которая может потребовать использования
-    // библиотеки для вывода схемы из JSON или ручного маппинга.
-    // Пока что, схемы предоставляются вручную в модулях.
-    static inferSchema(data: any): any[] {
-        // Простая реализация, которую можно улучшить
-        if (!data || data.length === 0) return [];
-        const firstItem = data[0];
-        return Object.keys(firstItem).map(key => {
-            const value = firstItem[key];
-            let type = 'STRING';
-            if (typeof value === 'number') type = 'FLOAT'; // Или INTEGER
-            if (typeof value === 'boolean') type = 'BOOLEAN';
-            if (value instanceof Date || /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}Z)?$/.test(value)) type = 'TIMESTAMP';
-            if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object') {
-                type = 'RECORD';
-                return { name: key, type: type, mode: 'REPEATED', fields: BigQueryService.inferSchema(value) };
-            }
-            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-                 type = 'RECORD';
-                 return { name: key, type: type, fields: BigQueryService.inferSchema([value]) };
-            }
-            return { name: key, type: type };
-        });
-    }
+  private transformDataForBigQuery(data: any): any[] {
+    if (!data || !Array.isArray(data)) return [];
+    return data.map((item: any) => ({
+      ...item,
+      timestamp: new Date().toISOString()
+    }));
+  }
 }

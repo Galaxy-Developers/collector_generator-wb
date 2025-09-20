@@ -1,0 +1,150 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Workflow {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  version     String   @default("1.0.0")
+  definition  Json
+  status      WorkflowStatus @default(DRAFT)
+  priority    Int?     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  executions  WorkflowExecution[]
+  steps       WorkflowStep[]
+  schedules   WorkflowSchedule[]
+
+  @@map("workflows")
+}
+
+model WorkflowExecution {
+  id           String   @id @default(cuid())
+  workflowId   String
+  status       ExecutionStatus @default(PENDING)
+  startedAt    DateTime @default(now())
+  completedAt  DateTime?
+  inputData    Json
+  outputData   Json?
+  errorMessage String?
+
+  // Relations
+  workflow     Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  stepExecutions WorkflowStepExecution[]
+
+  @@map("workflow_executions")
+}
+
+model WorkflowStep {
+  id            String   @id @default(cuid())
+  workflowId    String
+  name          String
+  type          String
+  configuration Json
+  position      Json     // {x: number, y: number}
+  onError       String   @default("stop") // "stop" | "continue"
+  onComplete    String   @default("continue") // "continue" | "return"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  workflow      Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  dependencies  WorkflowStepDependency[] @relation("StepDependencies")
+  dependents    WorkflowStepDependency[] @relation("DependentSteps")
+  executions    WorkflowStepExecution[]
+
+  @@map("workflow_steps")
+}
+
+model WorkflowStepDependency {
+  id              String @id @default(cuid())
+  stepId          String
+  dependsOnStepId String
+  outputKey       String? // Key to use for output data
+
+  // Relations
+  step            WorkflowStep @relation("StepDependencies", fields: [stepId], references: [id], onDelete: Cascade)
+  dependsOnStep   WorkflowStep @relation("DependentSteps", fields: [dependsOnStepId], references: [id], onDelete: Cascade)
+
+  @@unique([stepId, dependsOnStepId])
+  @@map("workflow_step_dependencies")
+}
+
+model WorkflowStepExecution {
+  id           String   @id @default(cuid())
+  executionId  String
+  stepId       String
+  status       ExecutionStatus @default(PENDING)
+  startedAt    DateTime @default(now())
+  completedAt  DateTime?
+  inputData    Json?
+  outputData   Json?
+  errorMessage String?
+
+  // Relations
+  execution    WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  step         WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@unique([executionId, stepId])
+  @@map("workflow_step_executions")
+}
+
+model WorkflowSchedule {
+  id             String   @id @default(cuid())
+  workflowId     String
+  cronExpression String
+  isActive       Boolean  @default(true)
+  lastRunAt      DateTime?
+  nextRunAt      DateTime?
+  inputData      Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  workflow       Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@map("workflow_schedules")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum ExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  PAUSED
+  STOPPED
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}

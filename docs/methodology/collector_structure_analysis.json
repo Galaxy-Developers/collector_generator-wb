@@ -1,0 +1,127 @@
+{
+  "current_collector_structure": {
+    "src/config.js": {
+      "purpose": "Конфигурация проекта и управление секретами",
+      "key_components": [
+        "GCP Project ID загрузка из key.json",
+        "BigQuery dataset и table конфигурация",
+        "Wildberries API базовый URL",
+        "Secret Manager интеграция",
+        "Порт и логирование"
+      ],
+      "template_variables": [
+        "PROJECT_ID",
+        "DATASET_ID",
+        "TABLE_ID",
+        "API_BASE_URL",
+        "SERVICE_NAME"
+      ]
+    },
+    "src/bqClient.js": {
+      "purpose": "BigQuery клиент для записи данных",
+      "key_components": [
+        "BigQuery инициализация с projectId",
+        "Batch load через временные JSON файлы",
+        "Схема маппинга данных в BigQuery формат",
+        "Error handling и cleanup",
+        "Партицирование по дате"
+      ],
+      "template_variables": [
+        "SCHEMA_MAPPING",
+        "TABLE_SCHEMA",
+        "PARTITION_FIELD",
+        "DATA_TRANSFORMATION"
+      ]
+    },
+    "src/wbClient.js": {
+      "purpose": "Wildberries API клиент",
+      "key_components": [
+        "HTTP клиент с axios",
+        "API аутентификация через Bearer token",
+        "Пагинация данных (skip/take)",
+        "Rate limiting и timeout",
+        "Data processing pipeline"
+      ],
+      "template_variables": [
+        "API_ENDPOINTS",
+        "AUTH_METHOD",
+        "PAGINATION_CONFIG",
+        "RATE_LIMITS",
+        "DATA_PROCESSOR"
+      ]
+    },
+    "src/routes.js": {
+      "purpose": "HTTP роутинг и API endpoints",
+      "key_components": [
+        "POST endpoint для сбора данных",
+        "Request validation",
+        "Prometheus metrics",
+        "Error handling",
+        "Response formatting"
+      ],
+      "template_variables": [
+        "ENDPOINT_PATH",
+        "REQUEST_SCHEMA",
+        "RESPONSE_FORMAT",
+        "METRICS_CONFIG"
+      ]
+    },
+    "src/index.js": {
+      "purpose": "Entry point и сервер настройка",
+      "key_components": [
+        "Fastify сервер инициализация",
+        "Pino логирование",
+        "Health check endpoint",
+        "Prometheus metrics endpoint",
+        "Error handling middleware"
+      ],
+      "template_variables": [
+        "SERVER_CONFIG",
+        "LOGGING_CONFIG",
+        "HEALTH_CHECK_PATH"
+      ]
+    },
+    "src/errors/FeedbackError.js": {
+      "purpose": "Кастомные ошибки",
+      "key_components": [
+        "Error inheritance от Error",
+        "Error codes и status codes",
+        "JSON serialization"
+      ],
+      "template_variables": [
+        "ERROR_TYPES",
+        "ERROR_CODES"
+      ]
+    }
+  },
+  "generator_requirements": {
+    "input_specification": {
+      "api_config": "Конфигурация API (URL, аутентификация, endpoints)",
+      "data_schema": "Схема данных для BigQuery",
+      "collection_strategy": "Стратегия сбора (polling, webhook, batch)",
+      "processing_rules": "Правила обработки данных"
+    },
+    "template_structure": {
+      "base_templates": [
+        "config.template.js",
+        "bqClient.template.js",
+        "apiClient.template.js",
+        "routes.template.js",
+        "index.template.js",
+        "errors.template.js"
+      ],
+      "configuration_templates": [
+        "package.template.json",
+        "docker.template.yml",
+        "env.template"
+      ]
+    },
+    "generation_process": {
+      "step_1": "Parse input specification",
+      "step_2": "Generate template variables",
+      "step_3": "Apply templates with variables",
+      "step_4": "Validate generated code",
+      "step_5": "Package for deployment"
+    }
+  }
+}

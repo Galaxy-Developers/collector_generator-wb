@@ -1,0 +1,60 @@
+import { IModuleExecutor, ExecutionInputs, ExecutionResult } from '../engine/types';
+import { StatistikaApi, Configuration } from '@galaxy-developers/wb-sdk';
+import { BigQueryService } from '../services/BigQueryService'; // Добавлено
+export class WbGetStatsExecutor implements IModuleExecutor {
+    async execute(config: any, inputs: ExecutionInputs, apiKey: string, bigQueryService: BigQueryService): Promise<ExecutionResult> {
+        console.log('[Module:wb-get-stats] Running with config:', config);
+        const campaignIdsFromInput = inputs.get('campaigns_in'); // Получаем массив ID кампаний со входа
+        if (!campaignIdsFromInput || !Array.isArray(campaignIdsFromInput) || campaignIdsFromInput.length === 0) {
+            return { outputs: new Map(), error: 'На вход не поступил список ID кампаний или список пуст.' };
+        }
+        if (!apiKey || apiKey.includes('СЮДА')) {
+            return { outputs: new Map(), error: 'API Key not provided in module config!' };
+        }
+        const endDate = new Date();
+        const beginDate = new Date();
+        beginDate.setDate(endDate.getDate() - (config.period || 30)); // Период из конфига, по умолчанию 30 дней
+        const formatDate = (d: Date) => d.toISOString().split('T')[0]; // Форматируем дату в YYYY-MM-DD
+        const wbConfig = new Configuration({ apiKey });
+        const statistikaApi = new StatistikaApi(wbConfig);
+        try {
+            const response = await statistikaApi.advV3FullstatsGet(
+                campaignIdsFromInput.join(','), // API обычно принимает ID через запятую
+                formatDate(beginDate),
+                formatDate(endDate)
+            );
+            const fullStats = response.data; // Получаем данные статистики
+            // КРИТИЧЕСКИ ВАЖНО: СОХРАНЕНИЕ СЫРЫХ ДАННЫХ В BIGQUERY
+            if (fullStats && Array.isArray(fullStats) && fullStats.length > 0) {
+                // Схема для статистики. Нужно будет получить из SDK или динамически определить.
+                const statsSchema = [
+                    { name: 'campaignId', type: 'INTEGER' },
+                    { name: 'name', type: 'STRING' },
+                    { name: 'type', type: 'INTEGER' },
+                    { name: 'status', type: 'INTEGER' },
+                    { name: 'views', type: 'INTEGER' },
+                    { name: 'clicks', type: 'INTEGER' },
+                    { name: 'ctr', type: 'FLOAT' },
+                    { name: 'cpc', type: 'FLOAT' },
+                    { name: 'spend', type: 'FLOAT' },
+                    { name: 'atbs', type: 'INTEGER' }, // Добавлено в корзину
+                    { name: 'orders', type: 'INTEGER' },
+                    { name: 'shks', type: 'INTEGER' }, // Просмотры карточки товара
+                    { name: 'cr', type: 'FLOAT' }, // Коэффициент конверсии
+                    { name: 'nmId', type: 'INTEGER' }, // Артикул WB
+                    { name: 'vendorCode', type: 'STRING' } // Артикул продавца
+                    // ... добавьте все поля из реального ответа WB
+                ];
+                await bigQueryService.saveRawData(`wb_get_stats_raw_${Date.now()}`, fullStats, statsSchema, 'wb_raw_data');
+                console.log(`[Module:wb-get-stats] Raw stats data saved to BigQuery.`);
+            }
+            const outputs = new Map();
+            outputs.set('stats_out', fullStats); // Возвращаем сырую статистику
+            return { outputs };
+        } catch (error: any) {
+            console.error(`[Module:wb-get-stats] API Error:`, error.response?.data || error.message);
+            const errorMessage = error.response?.data?.errors?. || (error instanceof Error ? error.message : 'Unknown API error');
+            return { outputs: new Map(), error: `Error fetching stats: ${JSON.stringify(errorMessage)}` };
+        }
+    }
+}

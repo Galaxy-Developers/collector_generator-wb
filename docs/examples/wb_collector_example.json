@@ -1,0 +1,102 @@
+{
+  "collector_name": "wb-feedback-collector",
+  "api_config": {
+    "base_url": "https://feedbacks-api.wildberries.ru",
+    "auth_type": "bearer",
+    "auth_field": "wbApiToken",
+    "endpoints": [
+      {
+        "name": "feedbacks",
+        "path": "/api/v1/feedbacks",
+        "method": "GET",
+        "params": {
+          "isAnswered": "boolean",
+          "take": "integer",
+          "skip": "integer",
+          "nmId": "string",
+          "order": "string"
+        }
+      }
+    ],
+    "rate_limits": {
+      "requests_per_minute": 60,
+      "concurrent_requests": 5
+    },
+    "pagination": {
+      "type": "offset",
+      "page_size": 2000,
+      "params": {
+        "skip_field": "skip",
+        "take_field": "take"
+      }
+    }
+  },
+  "bigquery_config": {
+    "dataset_id": "wildberries_data",
+    "table_id": "feedbacks",
+    "partition_field": "partition_date",
+    "schema": [
+      {
+        "name": "feedback_id",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "ingested_at",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "nmid",
+        "type": "INTEGER",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "user_name",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "text",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE"
+      }
+    ]
+  },
+  "data_processing": {
+    "transformations": [
+      {
+        "field": "createdDate",
+        "target": "created_at",
+        "type": "transform",
+        "config": {
+          "format": "iso_timestamp"
+        }
+      },
+      {
+        "field": "id",
+        "target": "feedback_id",
+        "type": "map",
+        "config": {}
+      }
+    ],
+    "filters": [
+      {
+        "field": "state",
+        "operator": "not_equals",
+        "value": "deleted"
+      }
+    ]
+  },
+  "deployment_config": {
+    "port": 8080,
+    "health_check_path": "/health",
+    "metrics_path": "/metrics",
+    "log_level": "info"
+  }
+}

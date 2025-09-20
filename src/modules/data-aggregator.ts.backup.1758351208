@@ -1,0 +1,45 @@
+import { IModuleExecutor, ExecutionInputs, ExecutionResult } from '../engine/types';
+import { BigQueryService } from '../services/BigQueryService'; // Добавлено
+export class DataAggregatorExecutor implements IModuleExecutor {
+    async execute(config: any, inputs: ExecutionInputs, apiKey: string, bigQueryService: BigQueryService): Promise<ExecutionResult> {
+        console.log('[Module:data-aggregator] Running with config:', config);
+        const campaigns = inputs.get('campaigns_in') || [];
+        const stats = inputs.get('stats_in') || [];
+        if (!Array.isArray(campaigns) || !Array.isArray(stats)) {
+            return { outputs: new Map(), error: 'Некорректные входные данные для агрегации.' };
+        }
+        const aggregatedData = campaigns.map((campaign: any) => {
+            // Для простоты, ищем статистику по campaignId.
+            // В реальной жизни может потребоваться более сложная логика,
+            // если stat.campaignId не всегда уникален или если есть nmId для статистики.
+            const campaignStats = stats.filter((s: any) => s.campaignId === campaign.id);
+            return {
+                ...campaign,
+                detailedStats: campaignStats.length > 0 ? campaignStats : [{ message: "No detailed stats found" }]
+            };
+        });
+        // КРИТИЧЕСКИ ВАЖНО: СОХРАНЕНИЕ ФИНАЛЬНОГО РЕЗУЛЬТАТА МОДУЛЯ В BIGQUERY
+        if (aggregatedData && Array.isArray(aggregatedData) && aggregatedData.length > 0) {
+            // Схема для агрегированных данных. Она будет отличаться от сырых данных.
+            const aggregatedSchema = [
+                { name: 'id', type: 'INTEGER' },
+                { name: 'name', type: 'STRING' },
+                { name: 'type', type: 'INTEGER' },
+                { name: 'status', type: 'INTEGER' },
+                { name: 'budget', type: 'FLOAT' },
+                { name: 'detailedStats', type: 'RECORD', mode: 'REPEATED', fields: [
+                    { name: 'campaignId', type: 'INTEGER' },
+                    { name: 'views', type: 'INTEGER' },
+                    { name: 'clicks', type: 'INTEGER' },
+                    { name: 'spend', type: 'FLOAT' }
+                    // ... добавьте сюда нужные поля из статистики
+                ]}
+            ];
+            await bigQueryService.saveModuleResult(`data_aggregator_result_${Date.now()}`, aggregatedData, aggregatedSchema, 'wb_processed_data');
+            console.log(`[Module:data-aggregator] Aggregated data saved to BigQuery.`);
+        }
+        const outputs = new Map();
+        outputs.set('aggregated_data_out', aggregatedData);
+        return { outputs };
+    }
+}

@@ -1,0 +1,60 @@
+{
+  "collector_name": "string - Имя коллектора",
+  "api_config": {
+    "base_url": "string - Базовый URL API",
+    "auth_type": "enum: bearer, api_key, basic, oauth",
+    "auth_field": "string - Поле для токена/ключа",
+    "endpoints": [
+      {
+        "name": "string - Название endpoint",
+        "path": "string - Путь endpoint",
+        "method": "enum: GET, POST, PUT",
+        "params": "object - Параметры запроса"
+      }
+    ],
+    "rate_limits": {
+      "requests_per_minute": "integer",
+      "concurrent_requests": "integer"
+    },
+    "pagination": {
+      "type": "enum: offset, cursor, page",
+      "page_size": "integer",
+      "params": "object - Параметры пагинации"
+    }
+  },
+  "bigquery_config": {
+    "dataset_id": "string - ID датасета",
+    "table_id": "string - ID таблицы",
+    "partition_field": "string - Поле для партицирования",
+    "schema": [
+      {
+        "name": "string - Имя поля",
+        "type": "enum: STRING, INTEGER, FLOAT, TIMESTAMP, BOOLEAN",
+        "mode": "enum: NULLABLE, REQUIRED, REPEATED"
+      }
+    ]
+  },
+  "data_processing": {
+    "transformations": [
+      {
+        "field": "string - Исходное поле",
+        "target": "string - Целевое поле",
+        "type": "enum: map, filter, transform",
+        "config": "object - Конфигурация трансформации"
+      }
+    ],
+    "filters": [
+      {
+        "field": "string - Поле для фильтрации",
+        "operator": "enum: equals, contains, greater, less",
+        "value": "any - Значение для сравнения"
+      }
+    ]
+  },
+  "deployment_config": {
+    "port": "integer - Порт сервиса",
+    "health_check_path": "string - Путь health check",
+    "metrics_path": "string - Путь метрик",
+    "log_level": "enum: debug, info, warn, error"
+  }
+}

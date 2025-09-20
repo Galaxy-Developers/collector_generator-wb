@@ -1,0 +1,31 @@
+# 🌌 БОЖЕСТВЕННЫЙ DOCKERFILE
+# Автоматически сгенерирован GALAXY Generator v2.0-FINAL
+
+FROM node:18-alpine
+
+# Установка рабочей директории
+WORKDIR /app
+
+# Создание пользователя для безопасности
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
+
+# Копирование package.json и установка зависимостей
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Копирование исходного кода
+COPY --chown=nodejs:nodejs . .
+
+# Переключение на пользователя nodejs
+USER nodejs
+
+# Открытие порта
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node healthcheck.js
+
+# Команда запуска
+CMD ["node", "src/index.js"]
